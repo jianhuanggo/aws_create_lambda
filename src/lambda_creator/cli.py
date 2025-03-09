@@ -39,6 +39,8 @@ def parse_args():
     # Optional arguments
     parser.add_argument('--region', default=None,
                         help='AWS region (default: use AWS configuration)')
+    parser.add_argument('--profile', default='latest',
+                        help='AWS profile name to use')
     parser.add_argument('--role-name', default=None,
                         help='Name of an existing IAM role to use (default: create a new role)')
     parser.add_argument('--image-tag', default='latest',
@@ -136,6 +138,7 @@ def create_lambda(args) -> Dict[str, Any]:
         function_name=args.lambda_name,
         ecr_repository_name=args.ecr_repo,
         region_name=args.region,
+        profile_name=args.profile,
         role_name=args.role_name,
         image_tag=args.image_tag,
         memory_size=args.memory,
@@ -157,7 +160,7 @@ def update_lambda(args) -> Dict[str, Any]:
     env_vars = parse_json_arg(args.env_vars)
     
     # Create Lambda Creator instance
-    creator = LambdaCreator(region_name=args.region)
+    creator = LambdaCreator(region_name=args.region, profile_name=args.profile)
     
     # Update the Lambda function
     response = creator.update_lambda_function(
@@ -179,7 +182,7 @@ def delete_lambda(args) -> Dict[str, Any]:
     logger.info(f"Deleting Lambda function {args.lambda_name}")
     
     # Create Lambda Creator instance
-    creator = LambdaCreator(region_name=args.region)
+    creator = LambdaCreator(region_name=args.region, profile_name=args.profile)
     
     # Delete the Lambda function
     response = creator.delete_lambda_function(args.lambda_name)
@@ -196,7 +199,7 @@ def invoke_lambda(args) -> Dict[str, Any]:
     payload = parse_json_arg(args.payload)
     
     # Create Lambda Creator instance
-    creator = LambdaCreator(region_name=args.region)
+    creator = LambdaCreator(region_name=args.region, profile_name=args.profile)
     
     # Invoke the Lambda function
     response = creator.invoke_lambda_function(
@@ -214,7 +217,7 @@ def get_lambda(args) -> Dict[str, Any]:
     logger.info(f"Getting information for Lambda function {args.lambda_name}")
     
     # Create Lambda Creator instance
-    creator = LambdaCreator(region_name=args.region)
+    creator = LambdaCreator(region_name=args.region, profile_name=args.profile)
     
     # Get the Lambda function
     response = creator.get_lambda_function(args.lambda_name)
@@ -227,7 +230,7 @@ def list_lambdas(args) -> Dict[str, Any]:
     logger.info("Listing Lambda functions")
     
     # Create Lambda Creator instance
-    creator = LambdaCreator(region_name=args.region)
+    creator = LambdaCreator(region_name=args.region, profile_name=args.profile)
     
     # List Lambda functions
     functions = creator.list_lambda_functions()

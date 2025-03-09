@@ -152,36 +152,42 @@ class TestLambdaRole(unittest.TestCase):
         # Verify the error
         self.assertEqual(context.exception.response['Error']['Code'], 'EntityAlreadyExists')
 
-    @patch('boto3.client')
+    @patch('boto3.Session')
     @patch('src.lambda_creator.lambda_role.create_lambda_role')
     @patch('src.lambda_creator.lambda_role.attach_s3_policy')
     @patch('time.sleep')
     def test_create_lambda_role_with_s3_access_success(
-        self, mock_sleep, mock_attach_s3_policy, mock_create_lambda_role, mock_boto3_client
+        self, mock_sleep, mock_attach_s3_policy, mock_create_lambda_role, mock_boto3_session
     ):
         """Test creating a Lambda role with S3 access successfully."""
         # Configure the mocks
-        mock_boto3_client.return_value = self.iam_mock
+        session_instance = MagicMock()
+        mock_boto3_session.return_value = session_instance
+        session_instance.client.return_value = self.iam_mock
+        
         mock_create_lambda_role.return_value = self.role_arn
         
         # Call the function
-        result = create_lambda_role_with_s3_access(region_name='us-west-2')
+        result = create_lambda_role_with_s3_access(region_name='us-west-2', profile_name='default')
         
         # Verify the result
         self.assertEqual(result['RoleArn'], self.role_arn)
         self.assertTrue(result['RoleName'].startswith('lambda-s3-access-role-'))
         
         # Verify that the mocks were called with the correct parameters
-        mock_boto3_client.assert_called_once_with('iam', region_name='us-west-2')
+        mock_boto3_session.assert_called_once_with(region_name='us-west-2', profile_name='default')
+        session_instance.client.assert_called_once_with('iam')
         mock_create_lambda_role.assert_called_once()
         mock_attach_s3_policy.assert_called_once()
         mock_sleep.assert_called_once_with(10)
 
-    @patch('boto3.client')
-    def test_delete_role_and_policies_success(self, mock_boto3_client):
+    @patch('boto3.Session')
+    def test_delete_role_and_policies_success(self, mock_boto3_session):
         """Test deleting a role and its policies successfully."""
         # Configure the mocks
-        mock_boto3_client.return_value = self.iam_mock
+        session_instance = MagicMock()
+        mock_boto3_session.return_value = session_instance
+        session_instance.client.return_value = self.iam_mock
         
         # Configure the IAM mock responses
         self.iam_mock.list_attached_role_policies.return_value = {
@@ -202,10 +208,11 @@ class TestLambdaRole(unittest.TestCase):
         }
         
         # Call the function
-        delete_role_and_policies(self.role_name, region_name='us-west-2')
+        delete_role_and_policies(self.role_name, region_name='us-west-2', profile_name='default')
         
         # Verify that the mocks were called with the correct parameters
-        mock_boto3_client.assert_called_once_with('iam', region_name='us-west-2')
+        mock_boto3_session.assert_called_once_with(region_name='us-west-2', profile_name='default')
+        session_instance.client.assert_called_once_with('iam')
         
         self.iam_mock.list_attached_role_policies.assert_called_once_with(
             RoleName=self.role_name
@@ -231,11 +238,13 @@ class TestLambdaRole(unittest.TestCase):
             RoleName=self.role_name
         )
 
-    @patch('boto3.client')
-    def test_delete_role_and_policies_error(self, mock_boto3_client):
+    @patch('boto3.Session')
+    def test_delete_role_and_policies_error(self, mock_boto3_session):
         """Test deleting a role with an error."""
         # Configure the mocks
-        mock_boto3_client.return_value = self.iam_mock
+        session_instance = MagicMock()
+        mock_boto3_session.return_value = session_instance
+        session_instance.client.return_value = self.iam_mock
         
         # Configure the IAM mock to raise an error
         error_response = {
@@ -250,7 +259,7 @@ class TestLambdaRole(unittest.TestCase):
         
         # Call the function and expect a ClientError
         with self.assertRaises(ClientError) as context:
-            delete_role_and_policies(self.role_name, region_name='us-west-2')
+            delete_role_and_policies(self.role_name, region_name='us-west-2', profile_name='default')
         
         # Verify the error
         self.assertEqual(context.exception.response['Error']['Code'], 'NoSuchEntity')

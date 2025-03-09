@@ -27,17 +27,24 @@ class LambdaCreator:
     A class to create and manage AWS Lambda functions from ECR images.
     """
 
-    def __init__(self, region_name: Optional[str] = None):
+    def __init__(self, region_name: Optional[str] = None, profile_name: str = 'latest'):
         """
-        Initialize the LambdaCreator with AWS region.
+        Initialize the LambdaCreator with AWS region and profile.
 
         Args:
             region_name: AWS region name. If None, uses the default region from AWS configuration.
+            profile_name: AWS profile name to use. Defaults to 'latest'.
         """
         self.region_name = region_name
-        self.lambda_client = boto3.client('lambda', region_name=region_name)
-        self.ecr_client = boto3.client('ecr', region_name=region_name)
-        self.iam_client = boto3.client('iam', region_name=region_name)
+        self.profile_name = profile_name
+        
+        # Create a session with the specified profile
+        session = boto3.Session(region_name=region_name, profile_name=profile_name)
+        
+        # Create clients using the session
+        self.lambda_client = session.client('lambda')
+        self.ecr_client = session.client('ecr')
+        self.iam_client = session.client('iam')
 
     def create_lambda_from_ecr(
         self,
@@ -377,6 +384,7 @@ def create_lambda_function(
     function_name: str,
     ecr_repository_name: str,
     region_name: Optional[str] = None,
+    profile_name: str = 'latest',
     role_name: Optional[str] = None,
     image_tag: str = 'latest',
     memory_size: int = 128,
@@ -393,6 +401,7 @@ def create_lambda_function(
         function_name: Name of the Lambda function
         ecr_repository_name: Name of the ECR repository
         region_name: AWS region name
+        profile_name: AWS profile name to use. Defaults to 'latest'.
         role_name: Name of the IAM role to use
         image_tag: Tag of the ECR image to use
         memory_size: Memory size for the Lambda function in MB
@@ -405,7 +414,7 @@ def create_lambda_function(
     Returns:
         Dict containing information about the created Lambda function
     """
-    creator = LambdaCreator(region_name=region_name)
+    creator = LambdaCreator(region_name=region_name, profile_name=profile_name)
     return creator.create_lambda_from_ecr(
         function_name=function_name,
         ecr_repository_name=ecr_repository_name,

@@ -43,6 +43,7 @@ def parse_arguments():
     parser.add_argument('--ecr-repo', required=True, help='Name of the ECR repository')
     parser.add_argument('--lambda-name', required=True, help='Name of the Lambda function')
     parser.add_argument('--region', default=None, help='AWS region (default: use AWS configuration)')
+    parser.add_argument('--profile', default='latest', help='AWS profile name to use (default: latest)')
     parser.add_argument('--image-tag', default='latest', help='ECR image tag (default: latest)')
     parser.add_argument('--memory', type=int, default=128, help='Lambda memory size in MB (default: 128)')
     parser.add_argument('--timeout', type=int, default=30, help='Lambda timeout in seconds (default: 30)')
@@ -242,7 +243,7 @@ def main():
     
     try:
         # Create Lambda Creator instance
-        creator = LambdaCreator(region_name=args.region)
+        creator = LambdaCreator(region_name=args.region, profile_name=args.profile)
         
         # Perform the requested operation
         if args.operation == 'create':
