@@ -129,18 +129,21 @@ def attach_s3_policy(iam_client, role_name: str) -> None:
         raise
 
 
-def create_lambda_role_with_s3_access(region_name: Optional[str] = None) -> Dict[str, Any]:
+def create_lambda_role_with_s3_access(region_name: Optional[str] = None, profile_name: str = 'latest') -> Dict[str, Any]:
     """
     Create an IAM role for Lambda with S3 access (convenience function).
 
     Args:
         region_name: AWS region name
+        profile_name: AWS profile name to use. Defaults to 'latest'.
 
     Returns:
         Dict containing information about the created IAM role
     """
     try:
-        iam_client = boto3.client('iam', region_name=region_name)
+        # Create a session with the specified profile
+        session = boto3.Session(region_name=region_name, profile_name=profile_name)
+        iam_client = session.client('iam')
         
         # Create a unique role name with timestamp
         role_name = f"lambda-s3-access-role-{int(time.time())}"
@@ -165,16 +168,19 @@ def create_lambda_role_with_s3_access(region_name: Optional[str] = None) -> Dict
         raise
 
 
-def delete_role_and_policies(role_name: str, region_name: Optional[str] = None) -> None:
+def delete_role_and_policies(role_name: str, region_name: Optional[str] = None, profile_name: str = 'latest') -> None:
     """
     Delete an IAM role and its attached policies.
 
     Args:
         role_name: Name of the IAM role to delete
         region_name: AWS region name
+        profile_name: AWS profile name to use. Defaults to 'latest'.
     """
     try:
-        iam_client = boto3.client('iam', region_name=region_name)
+        # Create a session with the specified profile
+        session = boto3.Session(region_name=region_name, profile_name=profile_name)
+        iam_client = session.client('iam')
         
         # List attached role policies
         attached_policies = iam_client.list_attached_role_policies(RoleName=role_name)

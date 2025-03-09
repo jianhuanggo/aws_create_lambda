@@ -26,12 +26,15 @@ class TestLambdaCreator(unittest.TestCase):
         self.ecr_mock = MagicMock()
         self.iam_mock = MagicMock()
         
-        # Create a patcher for boto3.client
-        self.boto3_client_patcher = patch('boto3.client')
-        self.boto3_client_mock = self.boto3_client_patcher.start()
+        # Create a patcher for boto3.Session
+        self.boto3_session_patcher = patch('boto3.Session')
+        self.boto3_session_mock = self.boto3_session_patcher.start()
         
-        # Configure the mock to return our mocks for different services
-        def side_effect(service, region_name=None):
+        # Configure the mock session to return our mocks for different services
+        session_instance = MagicMock()
+        self.boto3_session_mock.return_value = session_instance
+        
+        def client_side_effect(service):
             if service == 'lambda':
                 return self.lambda_mock
             elif service == 'ecr':
@@ -41,10 +44,10 @@ class TestLambdaCreator(unittest.TestCase):
             else:
                 return MagicMock()
         
-        self.boto3_client_mock.side_effect = side_effect
+        session_instance.client.side_effect = client_side_effect
         
-        # Create an instance of LambdaCreator with the mocked clients
-        self.creator = LambdaCreator(region_name='us-west-2')
+        # Create an instance of LambdaCreator with the mocked session
+        self.creator = LambdaCreator(region_name='us-west-2', profile_name='default')
         
         # Common test data
         self.function_name = 'test-lambda-function'
@@ -58,14 +61,18 @@ class TestLambdaCreator(unittest.TestCase):
     def tearDown(self):
         """Tear down test fixtures."""
         # Stop the patcher
-        self.boto3_client_patcher.stop()
+        self.boto3_session_patcher.stop()
 
     def test_init(self):
         """Test the initialization of LambdaCreator."""
-        # Verify that the boto3 clients were created with the correct region
-        self.boto3_client_mock.assert_any_call('lambda', region_name='us-west-2')
-        self.boto3_client_mock.assert_any_call('ecr', region_name='us-west-2')
-        self.boto3_client_mock.assert_any_call('iam', region_name='us-west-2')
+        # Verify that the boto3 Session was created with the correct parameters
+        self.boto3_session_mock.assert_called_once_with(region_name='us-west-2', profile_name='default')
+        
+        # Verify that the clients were created from the session
+        session_instance = self.boto3_session_mock.return_value
+        session_instance.client.assert_any_call('lambda')
+        session_instance.client.assert_any_call('ecr')
+        session_instance.client.assert_any_call('iam')
         
         # Verify that the clients were assigned correctly
         self.assertEqual(self.creator.lambda_client, self.lambda_mock)
@@ -439,6 +446,7 @@ class TestLambdaCreator(unittest.TestCase):
             function_name=self.function_name,
             ecr_repository_name=self.ecr_repo_name,
             region_name='us-west-2',
+            profile_name='default',
             memory_size=256,
             timeout=60,
             description='Test Lambda function'
@@ -448,7 +456,7 @@ class TestLambdaCreator(unittest.TestCase):
         self.assertEqual(result['FunctionName'], self.function_name)
         
         # Verify that the mock was called with the correct parameters
-        mock_lambda_creator_class.assert_called_once_with(region_name='us-west-2')
+        mock_lambda_creator_class.assert_called_once_with(region_name='us-west-2', profile_name='default')
         mock_lambda_creator.create_lambda_from_ecr.assert_called_once_with(
             function_name=self.function_name,
             ecr_repository_name=self.ecr_repo_name,

@@ -47,6 +47,9 @@ The package provides a command-line interface for creating and managing Lambda f
 # Create a Lambda function
 lambda-creator --create --ecr-repo my-ecr-repo --lambda-name my-lambda-function
 
+# Create a Lambda function with a specific AWS profile
+lambda-creator --create --ecr-repo my-ecr-repo --lambda-name my-lambda-function --profile my-profile
+
 # Update a Lambda function
 lambda-creator --update --ecr-repo my-ecr-repo --lambda-name my-lambda-function --memory 512 --timeout 60
 
@@ -80,6 +83,16 @@ from lambda_creator.lambda_creator import create_lambda_function
 response = create_lambda_function(
     function_name='my-lambda-function',
     ecr_repository_name='my-ecr-repo',
+    memory_size=256,
+    timeout=60,
+    description='My Lambda function'
+)
+
+# Create a Lambda function with a specific AWS profile
+response = create_lambda_function(
+    function_name='my-lambda-function',
+    ecr_repository_name='my-ecr-repo',
+    profile_name='my-profile',
     memory_size=256,
     timeout=60,
     description='My Lambda function'
