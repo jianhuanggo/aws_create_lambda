@@ -49,6 +49,8 @@ def parse_arguments():
     parser.add_argument('--timeout', type=int, default=30, help='Lambda timeout in seconds (default: 30)')
     parser.add_argument('--operation', choices=['create', 'update', 'invoke', 'list', 'delete', 'all'],
                         default='create', help='Operation to perform (default: create)')
+    parser.add_argument('--no-force-delete', action='store_false', dest='force_delete_existing',
+                       help='Do not delete existing Lambda function with the same name')
     parser.add_argument('--payload', type=str, help='JSON payload for Lambda invocation')
     
     return parser.parse_args()
@@ -87,7 +89,8 @@ def create_lambda(creator: LambdaCreator, args) -> Dict[str, Any]:
         timeout=args.timeout,
         environment_variables=env_vars,
         description=f"Lambda function created from ECR repository {args.ecr_repo}",
-        tags=tags
+        tags=tags,
+        force_delete_existing=args.force_delete_existing
     )
     
     logger.info(f"Lambda function {args.lambda_name} created successfully")

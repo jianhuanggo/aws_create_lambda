@@ -57,7 +57,8 @@ class LambdaCreator:
         environment_variables: Optional[Dict[str, str]] = None,
         description: str = '',
         tags: Optional[Dict[str, str]] = None,
-        vpc_config: Optional[Dict[str, List[str]]] = None
+        vpc_config: Optional[Dict[str, List[str]]] = None,
+        force_delete_existing: bool = True
     ) -> Dict[str, Any]:
         """
         Create a Lambda function from an ECR image.
@@ -78,6 +79,21 @@ class LambdaCreator:
             Dict containing information about the created Lambda function
         """
         try:
+            # Check if Lambda function already exists and delete it if necessary
+            if force_delete_existing:
+                try:
+                    self.get_lambda_function(function_name)
+                    logger.info(f"Lambda function {function_name} already exists. Deleting it...")
+                    self.delete_lambda_function(function_name)
+                    # Wait for the function to be fully deleted
+                    logger.info(f"Waiting for Lambda function {function_name} to be fully deleted...")
+                    time.sleep(5)
+                except ClientError as e:
+                    if e.response['Error']['Code'] != 'ResourceNotFoundException':
+                        raise
+                    # Function doesn't exist, continue with creation
+                    logger.info(f"Lambda function {function_name} does not exist. Proceeding with creation.")
+            
             # Get ECR repository URI
             ecr_repo_uri = self._get_ecr_repository_uri(ecr_repository_name)
             if not ecr_repo_uri:
@@ -392,7 +408,8 @@ def create_lambda_function(
     environment_variables: Optional[Dict[str, str]] = None,
     description: str = '',
     tags: Optional[Dict[str, str]] = None,
-    vpc_config: Optional[Dict[str, List[str]]] = None
+    vpc_config: Optional[Dict[str, List[str]]] = None,
+    force_delete_existing: bool = True
 ) -> Dict[str, Any]:
     """
     Create a Lambda function from an ECR image (convenience function).
@@ -410,6 +427,7 @@ def create_lambda_function(
         description: Description of the Lambda function
         tags: Tags to attach to the Lambda function
         vpc_config: VPC configuration for the Lambda function
+        force_delete_existing: Whether to delete existing Lambda function with the same name before creation. Defaults to True.
 
     Returns:
         Dict containing information about the created Lambda function
@@ -425,5 +443,6 @@ def create_lambda_function(
         environment_variables=environment_variables,
         description=description,
         tags=tags,
-        vpc_config=vpc_config
+        vpc_config=vpc_config,
+        force_delete_existing=force_delete_existing
     )
