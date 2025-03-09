@@ -429,6 +429,96 @@ class TestLambdaCreator(unittest.TestCase):
         self.lambda_mock.get_paginator.assert_called_once_with('list_functions')
         paginator_mock.paginate.assert_called_once_with(MaxItems=50)
 
+    def test_create_lambda_from_ecr_with_force_delete(self):
+        """Test creating a Lambda function with force delete of existing function."""
+        # Configure the mocks
+        self.ecr_mock.describe_repositories.return_value = {
+            'repositories': [
+                {
+                    'repositoryUri': self.ecr_repo_uri
+                }
+            ]
+        }
+        
+        # Mock get_function to return a function (indicating it exists)
+        self.lambda_mock.get_function.return_value = {
+            'Configuration': {
+                'FunctionName': self.function_name
+            }
+        }
+        
+        # Mock delete_function to return success
+        self.lambda_mock.delete_function.return_value = {}
+        
+        # Configure the create_function mock
+        self.lambda_mock.create_function.return_value = {
+            'FunctionName': self.function_name,
+            'FunctionArn': f'arn:aws:lambda:us-west-2:123456789012:function:{self.function_name}',
+            'PackageType': 'Image'
+        }
+        
+        # Call the method with force_delete_existing=True
+        result = self.creator.create_lambda_from_ecr(
+            function_name=self.function_name,
+            ecr_repository_name=self.ecr_repo_name,
+            role_name=self.role_name,
+            force_delete_existing=True
+        )
+        
+        # Verify the result
+        self.assertEqual(result['FunctionName'], self.function_name)
+        
+        # Verify that get_function was called
+        self.lambda_mock.get_function.assert_called_once_with(
+            FunctionName=self.function_name
+        )
+        
+        # Verify that delete_function was called
+        self.lambda_mock.delete_function.assert_called_once_with(
+            FunctionName=self.function_name
+        )
+        
+        # Verify that create_function was called
+        self.lambda_mock.create_function.assert_called_once()
+
+    def test_create_lambda_from_ecr_without_force_delete(self):
+        """Test creating a Lambda function without force delete of existing function."""
+        # Configure the mocks
+        self.ecr_mock.describe_repositories.return_value = {
+            'repositories': [
+                {
+                    'repositoryUri': self.ecr_repo_uri
+                }
+            ]
+        }
+        
+        # Configure the create_function mock
+        self.lambda_mock.create_function.return_value = {
+            'FunctionName': self.function_name,
+            'FunctionArn': f'arn:aws:lambda:us-west-2:123456789012:function:{self.function_name}',
+            'PackageType': 'Image'
+        }
+        
+        # Call the method with force_delete_existing=False
+        result = self.creator.create_lambda_from_ecr(
+            function_name=self.function_name,
+            ecr_repository_name=self.ecr_repo_name,
+            role_name=self.role_name,
+            force_delete_existing=False
+        )
+        
+        # Verify the result
+        self.assertEqual(result['FunctionName'], self.function_name)
+        
+        # Verify that get_function was not called
+        self.lambda_mock.get_function.assert_not_called()
+        
+        # Verify that delete_function was not called
+        self.lambda_mock.delete_function.assert_not_called()
+        
+        # Verify that create_function was called
+        self.lambda_mock.create_function.assert_called_once()
+
     @patch('src.lambda_creator.lambda_creator.LambdaCreator')
     def test_create_lambda_function_convenience_function(self, mock_lambda_creator_class):
         """Test the create_lambda_function convenience function."""
@@ -467,7 +557,8 @@ class TestLambdaCreator(unittest.TestCase):
             environment_variables=None,
             description='Test Lambda function',
             tags=None,
-            vpc_config=None
+            vpc_config=None,
+            force_delete_existing=True
         )
 
 

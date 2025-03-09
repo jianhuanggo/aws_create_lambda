@@ -60,6 +60,8 @@ def parse_args():
     action_group = parser.add_mutually_exclusive_group(required=True)
     action_group.add_argument('--create', action='store_true',
                              help='Create a new Lambda function')
+    parser.add_argument('--no-force-delete', action='store_false', dest='force_delete_existing',
+                       help='Do not delete existing Lambda function with the same name')
     action_group.add_argument('--update', action='store_true',
                              help='Update an existing Lambda function')
     action_group.add_argument('--delete', action='store_true',
@@ -145,7 +147,8 @@ def create_lambda(args) -> Dict[str, Any]:
         timeout=args.timeout,
         environment_variables=env_vars,
         description=args.description,
-        tags=tags
+        tags=tags,
+        force_delete_existing=args.force_delete_existing
     )
     
     logger.info(f"Lambda function {args.lambda_name} created successfully")

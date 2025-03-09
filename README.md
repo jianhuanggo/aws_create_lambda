@@ -44,11 +44,14 @@ pip install git+https://github.com/jianhuanggo/aws_create_lambda.git
 The package provides a command-line interface for creating and managing Lambda functions:
 
 ```bash
-# Create a Lambda function
+# Create a Lambda function (will delete any existing function with the same name)
 lambda-creator --create --ecr-repo my-ecr-repo --lambda-name my-lambda-function
 
 # Create a Lambda function with a specific AWS profile
 lambda-creator --create --ecr-repo my-ecr-repo --lambda-name my-lambda-function --profile my-profile
+
+# Create a Lambda function without deleting existing function (will fail if function exists)
+lambda-creator --create --ecr-repo my-ecr-repo --lambda-name my-lambda-function --no-force-delete
 
 # Update a Lambda function
 lambda-creator --update --ecr-repo my-ecr-repo --lambda-name my-lambda-function --memory 512 --timeout 60
